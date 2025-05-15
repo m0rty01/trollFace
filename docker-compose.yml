@@ -18,6 +18,17 @@ services:
       - TURN_PORT=3478
       - REALM=yourdomain.com
       - USER=demo:password 
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
 
   backend:
     image: postgres:15
@@ -29,4 +40,5 @@ services:
       - db-data:/var/lib/postgresql/data
 volumes:
   db-data:
+  minio-data:
  
