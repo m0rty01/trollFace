@@ -8,4 +8,25 @@ services:
     working_dir: /app
     ports:
       - "3000:3000"
-    command: sh -c "npm install && node server.js" 
+    command: sh -c "npm install && node server.js"
+  coturn:
+    image: instrumentisto/coturn
+    ports:
+      - "3478:3478"
+      - "3478:3478/udp"
+    environment:
+      - TURN_PORT=3478
+      - REALM=yourdomain.com
+      - USER=demo:password 
+
+  backend:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: mypassword
+    volumes:
+      - db-data:/var/lib/postgresql/data
+volumes:
+  db-data:
+ 
