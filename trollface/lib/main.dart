@@ -1,9 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/call_screen.dart';
+import 'screens/notifications_screen.dart';
+import 'services/notification_service.dart';
+import 'services/supabase_service.dart';
+import 'services/web_rtc_service.dart';
+import 'services/call_stats_service.dart';
+import 'services/audio_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  await Supabase.initialize(
+    url: 'YOUR_SUPABASE_URL',
+    anonKey: 'YOUR_SUPABASE_ANON_KEY',
+  );
+  
+  await NotificationService().initialize();
+  
   runApp(const MyApp());
 }
 
@@ -14,7 +30,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'TrollFace Video Call',
+      title: 'TrollFace',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -32,12 +48,40 @@ class MyApp extends StatelessWidget {
         // This works for code too, not just values: Most code changes can be
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomeScreen(),
-        '/call': (context) => const CallScreen(),
+        '/call': (context) => CallScreen(
+          callId: 'dummy-call-id', // This should be replaced with actual call ID
+          supabaseService: SupabaseService(),
+          webRTCService: WebRTCService(),
+          callStatsService: CallStatsService(),
+          audioService: AudioService(),
+        ),
+        '/notifications': (context) => const NotificationsScreen(),
+      },
+    );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<AuthState>(
+      stream: Supabase.instance.client.auth.onAuthStateChange,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          final session = snapshot.data!.session;
+          if (session != null) {
+            return const HomeScreen();
+          }
+        }
+        return const LoginScreen();
       },
     );
   }
