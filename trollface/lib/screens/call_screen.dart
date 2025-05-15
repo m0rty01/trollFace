@@ -362,62 +362,82 @@ class _CallScreenState extends State<CallScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                IconButton(
-                  icon: Icon(
-                    _isMuted ? Icons.mic_off : Icons.mic,
-                    color: Colors.white,
-                    size: 30,
+                CircleAvatar(
+                  backgroundColor: Colors.black,
+                  radius: 28,
+                  child: IconButton(
+                    icon: Icon(
+                      _isMuted ? Icons.mic_off : Icons.mic,
+                      color: Colors.yellow,
+                      size: 30,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isMuted = !_isMuted;
+                        widget.webRTCService.toggleMute(_isMuted);
+                      });
+                    },
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _isMuted = !_isMuted;
-                      widget.webRTCService.toggleMute(_isMuted);
-                    });
-                  },
                 ),
-                IconButton(
-                  icon: Icon(
-                    _isCameraOff ? Icons.videocam_off : Icons.videocam,
-                    color: Colors.white,
-                    size: 30,
+                CircleAvatar(
+                  backgroundColor: Colors.black,
+                  radius: 28,
+                  child: IconButton(
+                    icon: Icon(
+                      _isCameraOff ? Icons.videocam_off : Icons.videocam,
+                      color: Colors.yellow,
+                      size: 30,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isCameraOff = !_isCameraOff;
+                        widget.webRTCService.toggleCamera(_isCameraOff);
+                      });
+                    },
                   ),
-                  onPressed: () {
-                    setState(() {
-                      _isCameraOff = !_isCameraOff;
-                      widget.webRTCService.toggleCamera(_isCameraOff);
-                    });
-                  },
                 ),
-                IconButton(
-                  icon: Icon(
-                    _isSpeakerOn ? Icons.volume_up : Icons.volume_off,
-                    color: Colors.white,
-                    size: 30,
+                CircleAvatar(
+                  backgroundColor: Colors.black,
+                  radius: 28,
+                  child: IconButton(
+                    icon: Icon(
+                      _isSpeakerOn ? Icons.volume_up : Icons.volume_off,
+                      color: Colors.yellow,
+                      size: 30,
+                    ),
+                    onPressed: _toggleSpeaker,
                   ),
-                  onPressed: _toggleSpeaker,
                 ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.cameraswitch,
-                    color: Colors.white,
-                    size: 30,
+                CircleAvatar(
+                  backgroundColor: Colors.black,
+                  radius: 28,
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.cameraswitch,
+                      color: Colors.yellow,
+                      size: 30,
+                    ),
+                    onPressed: _switchCamera,
                   ),
-                  onPressed: _switchCamera,
                 ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.call_end,
-                    color: Colors.red,
-                    size: 30,
+                CircleAvatar(
+                  backgroundColor: Colors.black,
+                  radius: 28,
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.call_end,
+                      color: Colors.red,
+                      size: 30,
+                    ),
+                    onPressed: () async {
+                      await _logCallData();
+                      await _logActiveFilters();
+                      widget.webRTCService.endCall();
+                      if (mounted) {
+                        Navigator.pop(context);
+                      }
+                    },
                   ),
-                  onPressed: () async {
-                    await _logCallData();
-                    await _logActiveFilters();
-                    widget.webRTCService.endCall();
-                    if (mounted) {
-                      Navigator.pop(context);
-                    }
-                  },
                 ),
               ],
             ),
