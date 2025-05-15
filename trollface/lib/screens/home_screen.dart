@@ -11,6 +11,8 @@ import '../services/web_rtc_service.dart';
 import '../services/supabase_service.dart';
 import '../services/call_stats_service.dart';
 import '../services/audio_service.dart';
+import '../services/call_service.dart';
+import 'dart:async';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,11 +27,14 @@ class _HomeScreenState extends State<HomeScreen> {
   List<CallHistory> _recentCalls = [];
   List<Friend> _friends = [];
   bool _isLoading = true;
+  final CallService _callService = CallService();
+  StreamSubscription? _incomingCallSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _listenForIncomingCalls();
   }
 
   Future<void> _loadData() async {
@@ -113,6 +118,67 @@ class _HomeScreenState extends State<HomeScreen> {
         SnackBar(content: Text('Error signing out: $e')),
       );
     }
+  }
+
+  void _listenForIncomingCalls() {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    _incomingCallSubscription = _callService.listenForIncomingCalls(userId).listen((calls) {
+      if (calls.isNotEmpty) {
+        final call = calls.first;
+        _showIncomingCallDialog(context, call);
+      }
+    });
+  }
+
+  void _showIncomingCallDialog(BuildContext context, Map call) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text('Incoming Call'),
+        content: Text('You have an incoming call!'),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await _callService.updateCallStatus(call['id'], 'accepted');
+              Navigator.pop(context);
+              Navigator.pushNamed(
+                context,
+                '/call',
+                arguments: {'callId': call['id'], 'isCaller': false},
+              );
+            },
+            child: Text('Accept'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await _callService.updateCallStatus(call['id'], 'rejected');
+              Navigator.pop(context);
+            },
+            child: Text('Reject'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _listenForCallStatus(String callId) {
+    _callService.listenForCallStatus(callId).listen((call) {
+      if (call == null) return;
+      if (call['status'] == 'accepted') {
+        // Start WebRTC connection
+      } else if (call['status'] == 'rejected') {
+        // Show rejected message and pop
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Call was rejected')),
+        );
+      } else if (call['status'] == 'ended') {
+        // Handle call end
+        Navigator.pop(context);
+      }
+    });
   }
 
   @override
@@ -233,20 +299,40 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStartCallButton() {
-    return ElevatedButton.icon(
-      onPressed: _startCall,
-      icon: const Icon(Icons.video_call, color: Colors.white),
-      label: const Text('Start Call', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+    return Column(
+      children: [
+        ElevatedButton.icon(
+          onPressed: _startCall,
+          icon: const Icon(Icons.video_call, color: Colors.white),
+          label: const Text('Start Call', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            backgroundColor: Colors.deepPurple,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
+            textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
         ),
-        elevation: 2,
-        textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-      ),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          onPressed: () => Navigator.pushNamed(context, '/friends'),
+          icon: const Icon(Icons.people, color: Colors.white),
+          label: const Text('Friends', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
+            textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ),
+      ],
     );
   }
 
@@ -428,5 +514,20 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       return '${duration.inSeconds}s';
     }
+  }
+
+  void _startVideoCall(String friendId) async {
+    final call = await _callService.startCall(friendId);
+    Navigator.pushNamed(
+      context,
+      '/call',
+      arguments: {'callId': call['id'], 'isCaller': true},
+    );
+  }
+
+  @override
+  void dispose() {
+    _incomingCallSubscription?.cancel();
+    super.dispose();
   }
 } 

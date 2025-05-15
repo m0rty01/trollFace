@@ -4,6 +4,7 @@ import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/call_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/friends_screen.dart';
 import 'services/notification_service.dart';
 import 'services/supabase_service.dart';
 import 'services/web_rtc_service.dart';
@@ -54,14 +55,19 @@ class MyApp extends StatelessWidget {
       ),
       home: const AuthWrapper(),
       routes: {
-        '/call': (context) => CallScreen(
-          callId: 'dummy-call-id', // This should be replaced with actual call ID
-          supabaseService: SupabaseService(),
-          webRTCService: WebRTCService(),
-          callStatsService: CallStatsService(),
-          audioService: AudioService(),
-        ),
+        '/call': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          return CallScreen(
+            callId: args?['callId'] ?? '',
+            isIncoming: !(args?['isCaller'] ?? false),
+            supabaseService: SupabaseService(),
+            webRTCService: WebRTCService(),
+            callStatsService: CallStatsService(),
+            audioService: AudioService(),
+          );
+        },
         '/notifications': (context) => const NotificationsScreen(),
+        '/friends': (context) => const FriendsScreen(),
       },
     );
   }
