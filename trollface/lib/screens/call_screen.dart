@@ -389,6 +389,22 @@ class _CallScreenState extends State<CallScreen> {
                   },
                 ),
                 IconButton(
+                  icon: Icon(
+                    _isSpeakerOn ? Icons.volume_up : Icons.volume_off,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                  onPressed: _toggleSpeaker,
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.cameraswitch,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                  onPressed: _switchCamera,
+                ),
+                IconButton(
                   icon: const Icon(
                     Icons.call_end,
                     color: Colors.red,

@@ -45,26 +45,32 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadRecentCalls() async {
-    final response = await _supabase
-        .from('call_history')
-        .select()
-        .order('start_time', ascending: false)
-        .limit(10);
-    
-    setState(() {
-      _recentCalls = response.map((json) => CallHistory.fromJson(json)).toList();
-    });
+    try {
+      final response = await _supabase
+          .from('call_history')
+          .select()
+          .order('start_time', ascending: false)
+          .limit(10);
+      setState(() {
+        _recentCalls = response.map((json) => CallHistory.fromJson(json)).toList();
+      });
+    } catch (e) {
+      print('Error loading recent calls: $e');
+    }
   }
 
   Future<void> _loadFriends() async {
-    final response = await _supabase
-        .from('friends')
-        .select()
-        .order('name');
-    
-    setState(() {
-      _friends = response.map((json) => Friend.fromJson(json)).toList();
-    });
+    try {
+      final response = await _supabase
+          .from('friends')
+          .select()
+          .order('name');
+      setState(() {
+        _friends = response.map((json) => Friend.fromJson(json)).toList();
+      });
+    } catch (e) {
+      print('Error loading friends: $e');
+    }
   }
 
   Future<void> _startCall() async {
@@ -114,6 +120,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
     final user = _supabase.auth.currentUser;
 
+    // Debug prints
+    print('DEBUG: _friends.length = \'${_friends.length}\'' );
+    print('DEBUG: _recentCalls.length = \'${_recentCalls.length}\'' );
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('TrollFace'),
@@ -134,17 +144,42 @@ class _HomeScreenState extends State<HomeScreen> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadData,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _buildUserProfile(user),
-                  const SizedBox(height: 24),
-                  _buildStartCallButton(),
-                  const SizedBox(height: 24),
-                  _buildFriendsList(),
-                  const SizedBox(height: 24),
-                  _buildRecentCalls(),
-                ],
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      color: Colors.red,
+                      padding: const EdgeInsets.all(16),
+                      child: const Text(
+                        'DEBUG: HomeScreen loaded',
+                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {
+                        print('DEBUG: Test button pressed');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        textStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      child: const Text('TEST BUTTON (should always be visible)'),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildUserProfile(user),
+                    const SizedBox(height: 24),
+                    _buildStartCallButton(),
+                    const SizedBox(height: 24),
+                    _buildFriendsList(),
+                    const SizedBox(height: 24),
+                    _buildRecentCalls(),
+                  ],
+                ),
               ),
             ),
     );
@@ -200,26 +235,41 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildStartCallButton() {
     return ElevatedButton.icon(
       onPressed: _startCall,
-      icon: const Icon(Icons.video_call),
-      label: const Text('Start Call'),
+      icon: const Icon(Icons.video_call, color: Colors.white),
+      label: const Text('Start Call', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
+        elevation: 2,
+        textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
       ),
     );
   }
 
   Widget _buildFriendsList() {
-    if (_friends.isEmpty) return const SizedBox.shrink();
-
+    if (_friends.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Friends',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.deepPurple, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Text('No friends found. Add some friends to get started!', style: TextStyle(color: Colors.deepPurple.shade200)),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Friends',
-          style: Theme.of(context).textTheme.titleLarge,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.deepPurple, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         SizedBox(
@@ -237,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         CircleAvatar(
                           radius: 30,
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor: Colors.deepPurple,
                           child: friend.avatarUrl != null
                               ? ClipOval(
                                   child: CachedNetworkImage(
@@ -245,10 +295,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     width: 60,
                                     height: 60,
                                     fit: BoxFit.cover,
-                                    placeholder: (context, url) =>
-                                        const CircularProgressIndicator(),
-                                    errorWidget: (context, url, error) =>
-                                        const Icon(Icons.person),
+                                    placeholder: (context, url) => const CircularProgressIndicator(),
+                                    errorWidget: (context, url, error) => const Icon(Icons.person, color: Colors.white),
                                   ),
                                 )
                               : Text(
@@ -256,6 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   style: const TextStyle(
                                     fontSize: 24,
                                     color: Colors.white,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                         ),
@@ -270,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 color: Colors.green,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Theme.of(context).scaffoldBackgroundColor,
+                                  color: Colors.white,
                                   width: 2,
                                 ),
                               ),
@@ -279,7 +328,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(friend.name),
+                    Text(friend.name, style: const TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold)),
                   ],
                 ),
               );
@@ -291,14 +340,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildRecentCalls() {
-    if (_recentCalls.isEmpty) return const SizedBox.shrink();
-
+    if (_recentCalls.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Recent Calls',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.deepPurple, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Text('No recent calls yet.', style: TextStyle(color: Colors.deepPurple.shade200)),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Recent Calls',
-          style: Theme.of(context).textTheme.titleLarge,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.deepPurple, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         ListView.builder(
@@ -315,13 +375,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: Colors.white,
                 ),
               ),
-              title: Text(call.receiverId ?? 'Unknown'),
+              title: Text(call.receiverId ?? 'Unknown', style: const TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold)),
               subtitle: Text(
                 DateFormat.yMMMd().add_jm().format(call.startTime),
+                style: const TextStyle(color: Colors.black54),
               ),
               trailing: Text(
                 _getCallDuration(call),
-                style: Theme.of(context).textTheme.bodySmall,
+                style: const TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold),
               ),
             );
           },

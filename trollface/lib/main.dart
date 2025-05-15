@@ -9,13 +9,15 @@ import 'services/supabase_service.dart';
 import 'services/web_rtc_service.dart';
 import 'services/call_stats_service.dart';
 import 'services/audio_service.dart';
+import 'config/supabase_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   await Supabase.initialize(
-    url: 'YOUR_SUPABASE_URL',
-    anonKey: 'YOUR_SUPABASE_ANON_KEY',
+    url: SupabaseConfig.url,
+    anonKey: SupabaseConfig.anonKey,
+    debug: true, // Enable debug mode for development
   );
   
   await NotificationService().initialize();
@@ -50,10 +52,8 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      initialRoute: '/login',
+      home: const AuthWrapper(),
       routes: {
-        '/login': (context) => const LoginScreen(),
-        '/home': (context) => const HomeScreen(),
         '/call': (context) => CallScreen(
           callId: 'dummy-call-id', // This should be replaced with actual call ID
           supabaseService: SupabaseService(),
@@ -75,11 +75,9 @@ class AuthWrapper extends StatelessWidget {
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          final session = snapshot.data!.session;
-          if (session != null) {
-            return const HomeScreen();
-          }
+        final session = Supabase.instance.client.auth.currentSession;
+        if (session != null) {
+          return const HomeScreen();
         }
         return const LoginScreen();
       },
